@@ -13,10 +13,6 @@ struct Args {
     #[arg(short = 'n', long)]
     binary_name: Option<String>,
 
-    /// Directory where the generated manpage will be saved
-    #[arg(short = 'o', long, default_value = ".")]
-    output_dir: PathBuf,
-
     /// Section number of the manpage (accepted values: 1-8)
     #[arg(short = 's', long, default_value = "1", value_parser = clap::value_parser!(u8).range(1..=8))]
     section: u8,
@@ -56,7 +52,7 @@ fn main() {
             .to_string()
     });
 
-    if let Err(e) = generate_manpage(&args.binary_path, &binary_name, &args.output_dir, args.section, &title) {
+    if let Err(e) = generate_manpage(&args.binary_path, &binary_name, args.section, &title) {
         eprintln!("Error: {}", e);
         std::process::exit(1);
     }

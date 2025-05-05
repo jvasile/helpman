@@ -1,32 +1,26 @@
-use std::fs;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::fs::File;
 use std::io::{Read, BufReader, BufRead};
 
-/// Generates a manpage for the given binary and saves it to the specified output directory.
+/// Generates and prints a manpage for the given binary to the screen.
 ///
 /// # Arguments
 /// * `binary_path` - Path to the binary for which the manpage is being generated.
 /// * `name` - Name of the binary (used in the manpage header).
-/// * `output_dir` - Directory where the generated manpage will be saved.
 /// * `section` - Section number of the manpage (e.g., 1 for general commands, 2 for system calls).
 /// * `title` - Title of the manpage (e.g., "General commands").
 ///
 /// # Returns
 /// * `Ok(())` if the manpage is successfully generated.
 /// * `Err(String)` containing an error message if the generation fails.
-pub fn generate_manpage(binary_path: &PathBuf, name: &str, output_dir: &PathBuf, section: u8, title: &str) -> Result<(), String> {
-    let manpage_path = output_dir.join(format!("{}.{}", name, section));
+pub fn generate_manpage(binary_path: &PathBuf, name: &str, section: u8, title: &str) -> Result<(), String> {
 
     // Generate manpage content
     let manpage_content = generate_manpage_content(binary_path, name, section, title)?;
 
-    // Write manpage
-    fs::write(&manpage_path, manpage_content)
-        .map_err(|e| format!("Failed to write manpage: {}", e))?;
-
-    println!("Manpage generated at {}", manpage_path.display());
+    // Print manpage content to the screen
+    println!("{}", manpage_content);
     Ok(())
 }
 
