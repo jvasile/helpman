@@ -1,6 +1,6 @@
 [package]
 name = "helpman"
-description = "CLI tool to generate manpages from a binary's help output"
+description = "CLI tool to generate manpages from a rust binary's help output.  This works well with clap output.  If there are subcommands, their help gets included in the man page."
 homepage = "https://github.com/jvasile/helpman"
 repository = "https://github.com/jvasile/helpman.git"
 license = "mit"
@@ -24,7 +24,7 @@ panic = "abort" # No stack trace on panic
 [package.metadata.deb]
 maintainer = "James Vasile <james@gmail.com>"
 copyright = "2024, James Vasile <james@gmail.com>"
-extended-description = "CLI tool to generate manpages from a binary's help output"
+extended-description = "CLI tool to generate manpages from a rust binary's help output.  This works well with clap output.  If there are subcommands, their help gets included in the man page."
 depends = "$auto"
 section = "utility"
 priority = "optional"

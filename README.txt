@@ -1,5 +1,7 @@
-CLI tool to generate manpages from a binary's help output.  This
-program handles subcommands by putting them all into one big man page.
+CLI tool to generate manpages from a rust binary's help output.  This
+works well with clap output.  If there are subcommands, their help
+gets included in the man page.
+
 
 Usage: helpman [OPTIONS] <BINARY_PATH>
 
