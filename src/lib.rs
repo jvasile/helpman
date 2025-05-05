@@ -4,6 +4,18 @@ use std::process::{Command, Stdio};
 use std::fs::File;
 use std::io::{Read, BufReader, BufRead};
 
+/// Generates a manpage for the given binary and saves it to the specified output directory.
+///
+/// # Arguments
+/// * `binary_path` - Path to the binary for which the manpage is being generated.
+/// * `name` - Name of the binary (used in the manpage header).
+/// * `output_dir` - Directory where the generated manpage will be saved.
+/// * `section` - Section number of the manpage (e.g., 1 for general commands, 2 for system calls).
+/// * `title` - Title of the manpage (e.g., "General commands").
+///
+/// # Returns
+/// * `Ok(())` if the manpage is successfully generated.
+/// * `Err(String)` containing an error message if the generation fails.
 pub fn generate_manpage(binary_path: &PathBuf, name: &str, output_dir: &PathBuf, section: u8, title: &str) -> Result<(), String> {
     let manpage_path = output_dir.join(format!("{}.{}", name, section));
 
@@ -18,6 +30,17 @@ pub fn generate_manpage(binary_path: &PathBuf, name: &str, output_dir: &PathBuf,
     Ok(())
 }
 
+/// Generates the content of the manpage based on the binary's help and version output.
+///
+/// # Arguments
+/// * `binary_path` - Path to the binary.
+/// * `name` - Name of the binary.
+/// * `section` - Section number of the manpage.
+/// * `title` - Title of the manpage.
+///
+/// # Returns
+/// * `Ok(String)` containing the manpage content.
+/// * `Err(String)` containing an error message if content generation fails.
 fn generate_manpage_content(binary_path: &PathBuf, name: &str, section: u8, title: &str) -> Result<String, String> {
     let main_help = get_command_output(binary_path, &["--help"])?;
     let version = get_command_output(binary_path, &["--version"]).unwrap_or_else(|_| "1.0.0".to_string());
@@ -99,7 +122,11 @@ fn generate_manpage_content(binary_path: &PathBuf, name: &str, section: u8, titl
     Ok(manpage)
 }
 
-/// This function extracts the homepage URL from the Cargo.toml file, if one exists.
+/// Extracts the homepage URL from the `Cargo.toml` file, if available.
+///
+/// # Returns
+/// * `Some(String)` containing the homepage URL if found.
+/// * `None` if no homepage is specified or the file is unavailable.
 ///
 /// This is a little extra functionality for rust projects.  If you use this program
 /// on non-rust projects, it will just return None.
@@ -135,6 +162,11 @@ fn extract_homepage() -> Option<String> {
 }
 
 
+/// Extracts the Git repository URL from the `.git/config` file, if available.
+///
+/// # Returns
+/// * `Some(String)` containing the repository URL if found.
+/// * `None` if no URL is found or the file is unavailable.
 fn extract_git_repo_url() -> Option<String> {
     let cwd = std::env::current_dir().ok()?;
     let git_config_path = cwd.join(".git/config");
@@ -186,6 +218,15 @@ fn format_description(help_text: &str) -> String {
         .replace("\n", "\n\n") // Add spacing between paragraphs
 }
 
+/// Executes a command using the specified binary path and arguments, capturing its output.
+///
+/// # Arguments
+/// * `binary_path` - Path to the binary to execute.
+/// * `args` - A slice of string arguments to pass to the binary.
+///
+/// # Returns
+/// * `Ok(String)` containing the captured standard output if the command executes successfully.
+/// * `Err(String)` containing the captured standard error or an error message if the command fails.
 
 fn get_command_output(binary_path: &PathBuf, args: &[&str]) -> Result<String, String> {
     let output = Command::new(binary_path)
@@ -202,6 +243,14 @@ fn get_command_output(binary_path: &PathBuf, args: &[&str]) -> Result<String, St
     Ok(String::from_utf8_lossy(&output.stdout).into_owned())
 }
 
+/// Extracts the list of subcommands available in the binary based on its help output.
+///
+/// # Arguments
+/// * `binary_path` - Path to the binary whose subcommands are to be extracted.
+///
+/// # Returns
+/// * `Ok(Vec<String>)` containing the list of subcommands if successfully extracted.
+/// * `Err(String)` containing an error message if the extraction fails.
 fn get_subcommands(binary_path: &PathBuf) -> Result<Vec<String>, String> {
     let help_text = get_command_output(binary_path, &["--help"])?;
     let mut subcommands = Vec::new();
@@ -227,6 +276,13 @@ fn get_subcommands(binary_path: &PathBuf) -> Result<Vec<String>, String> {
     Ok(subcommands)
 }
 
+/// Extracts a short description from the binary's help output.
+///
+/// # Arguments
+/// * `help_text` - The help output of the binary as a string.
+///
+/// # Returns
+/// * A short description string, or a default string if none is found.
 fn get_short_description(help_text: &str) -> String {
     help_text.lines()
         .find(|line| !line.trim().is_empty() && !line.trim().starts_with('U'))
@@ -234,6 +290,14 @@ fn get_short_description(help_text: &str) -> String {
         .unwrap_or_else(|| "Command line tool".to_string())
 }
 
+/// Extracts the usage section from the binary's help output.
+///
+/// # Arguments
+/// * `help_text` - The help output of the binary as a string.
+///
+/// # Returns
+/// * `Some(String)` containing the usage section if found.
+/// * `None` if no usage section is found.
 fn get_usage(help_text: &str) -> Option<String> {
     help_text
         .lines()
@@ -247,6 +311,14 @@ fn get_usage(help_text: &str) -> Option<String> {
         })
 }
 
+/// Extracts the options section from the binary's help output.
+///
+/// # Arguments
+/// * `help_text` - The help output of the binary as a string.
+///
+/// # Returns
+/// * `Some(String)` containing the formatted options section if found.
+/// * `None` if no options section is found.
 fn extract_options(help_text: &str) -> Option<String> {
     let mut options = String::new();
     let mut in_options = false;
@@ -274,6 +346,13 @@ fn extract_options(help_text: &str) -> Option<String> {
     }
 }
 
+/// Converts the help output of a subcommand into a formatted manpage-compatible string.
+///
+/// # Arguments
+/// * `help_text` - The help output of the subcommand as a string.
+///
+/// # Returns
+/// * A formatted string suitable for inclusion in a manpage.
 fn convert_subcommand_help(help_text: &str) -> String {
     help_text.replace("-\n", "").replace("-\r\n", "").replace("USAGE:", ".SH USAGE\n")
         .replace("OPTIONS:", ".SH OPTIONS\n").replace("--", "\\-\\-")
