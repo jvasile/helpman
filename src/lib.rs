@@ -4,11 +4,11 @@ use std::process::{Command, Stdio};
 use std::fs::File;
 use std::io::{Read, BufReader, BufRead};
 
-pub fn generate_manpage(binary_path: &PathBuf, name: &str, output_dir: &PathBuf) -> Result<(), String> {
-    let manpage_path = output_dir.join(format!("{}.1", name));
+pub fn generate_manpage(binary_path: &PathBuf, name: &str, output_dir: &PathBuf, section: u8, title: &str) -> Result<(), String> {
+    let manpage_path = output_dir.join(format!("{}.{}", name, section));
 
     // Generate manpage content
-    let manpage_content = generate_manpage_content(binary_path, name)?;
+    let manpage_content = generate_manpage_content(binary_path, name, section, title)?;
 
     // Write manpage
     fs::write(&manpage_path, manpage_content)
@@ -18,7 +18,7 @@ pub fn generate_manpage(binary_path: &PathBuf, name: &str, output_dir: &PathBuf)
     Ok(())
 }
 
-fn generate_manpage_content(binary_path: &PathBuf, name: &str) -> Result<String, String> {
+fn generate_manpage_content(binary_path: &PathBuf, name: &str, section: u8, title: &str) -> Result<String, String> {
     let main_help = get_command_output(binary_path, &["--help"])?;
     let version = get_command_output(binary_path, &["--version"]).unwrap_or_else(|_| "1.0.0".to_string());
     let subcommands = get_subcommands(binary_path)?;
@@ -27,9 +27,12 @@ fn generate_manpage_content(binary_path: &PathBuf, name: &str) -> Result<String,
 
     // Header
     manpage.push_str(&format!(
-        ".TH \"{0}\" \"1\" \"\" \"{0} {1}\" \"User Commands\"\n",
+        ".TH \"{0}\" \"{1}\" \"\" \"{0} {2}\" \"{3}\"
+",
         name.to_uppercase(),
+        section,
         version.trim(),
+        title,
     ));
 
     // Name section

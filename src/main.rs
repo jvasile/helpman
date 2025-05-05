@@ -16,6 +16,14 @@ struct Args {
     /// Directory where the generated manpage will be saved (defaults to current working directory)
     #[arg(short = 'o', long, default_value = ".")]
     output_dir: PathBuf,
+
+    /// Section number of the manpage (default is 1, accepted values: 1-8)
+    #[arg(short = 's', long, default_value = "1", value_parser = clap::value_parser!(u8).range(1..=8))]
+    section: u8,
+
+    /// Title of the manual (default depends on the section)
+    #[arg(short = 't', long)]
+    title: Option<String>,
 }
 
 fn main() {
@@ -30,7 +38,25 @@ fn main() {
             .to_string()
     });
 
-    if let Err(e) = generate_manpage(&args.binary_path, &binary_name, &args.output_dir) {
+    // Determine the default title based on the section if not provided
+    let default_titles = [
+        "General commands",
+        "System calls",
+        "Library functions",
+        "Special files and drivers",
+        "File formats and conventions",
+        "Games and screensavers",
+        "Miscellaneous",
+        "System admin commands and daemons",
+    ];
+    let title = args.title.unwrap_or_else(|| {
+        default_titles
+            .get((args.section - 1) as usize)
+            .unwrap_or(&"Unknown section")
+            .to_string()
+    });
+
+    if let Err(e) = generate_manpage(&args.binary_path, &binary_name, &args.output_dir, args.section, &title) {
         eprintln!("Error: {}", e);
         std::process::exit(1);
     }
