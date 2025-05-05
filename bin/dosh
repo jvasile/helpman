@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+# Do - The Simplest Build Tool on Earth.
+# Documentation and examples see https://github.com/8gears/do
+
+set -eu
+
+VERSION="0.0.1"
+
+SCRIPTNAME=`basename "$0"`
+BASEDIR=$(realpath $( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )/.." &> /dev/null && pwd ))
+PROJNAME=$(basename $BASEDIR)
+
+build() {
+    cargo build
+    pushd ${BASEDIR} > /dev/null
+    if ! [ -f bin/$PROJNAME ]; then
+	mkdir -p bin
+	cd bin
+	ln -sf ../target/debug/$PROJNAME
+    fi
+    popd > /dev/null
+}
+
+cpsrc() {
+    pushd ${BASEDIR} > /dev/null
+    cat src/*.rs | tee /tmp/cpsrc
+    cargo build | tee -a /tmp/cpsrc
+    test 2>&1 | tee -a /tmp/cpsrc
+    cat /tmp/cpsrc | wl-copy
+    popd > /dev/null
+}
+    
+coverage() {
+    cargo tarpaulin --engine llvm --out html
+}
+
+format() {
+    cd ${BASEDIR}
+    cargo fmt
+}
+
+# Show only the ignored tests.  It was difficult to figure out how to
+# do this, so I added it to dosh.
+ignored-tests() {
+    cargo test -- --list --ignored --format=terse 2>&1 | grep ": test" | sed 's/: test$//'
+}
+
+install-hook() {
+    pushd ${BASEDIR} > /dev/null
+
+    if [ -f .git/hooks/pre-commit ]; then
+	echo "pre-commit hook already exists, don't want to overwrite it. Exiting"
+	popd > /dev/null
+	return 0
+    fi
+
+    cp hooks.shar .git
+    cd .git
+    sh hooks.shar
+    rm hooks.shar
+    cd ..
+    
+    popd > /dev/null
+}
+
+release() {
+    pushd ${BASEDIR} > /dev/null
+
+    cargo build --release
+
+    # Build man page
+    help2man -s 1 -n ${PROJNAME} -m "${PROJNAME} Manual" target/release/${PROJNAME} > target/release/${PROJNAME}.1
+    rm -f target/release/${PROJNAME}.1.gz
+    gzip -9n target/release/${PROJNAME}.1
+
+    # Assemble the debian package
+    cargo deb -p ${PROJNAME}
+
+    popd > /dev/null
+
+}
+
+test() { # note we have shadowed the test function
+    # Set envvar DOCTEST=1 to run doctests
+    if [[ "${DOCTEST:-0}" == "1" ]]; then
+    	cargo test --doc && cargo nextest run 
+    else
+	cargo nextest run 
+    fi
+
+}
+
+#export PATH="$BASEDIR:$PATH"
+"$@" # <- execute the task
+[ "$#" -gt 0 ] || printf "Usage:\n\t./${SCRIPTNAME} %s\n" "($(compgen -A function | grep '^[^_]' | paste -sd '|' -))"

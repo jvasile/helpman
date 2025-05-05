@@ -1,0 +1,127 @@
+#!/bin/bash
+
+# Script that:
+#
+#  * prints the contents of files to the clipboard, with separators
+#    and file names so the contents of each file are clear
+#
+#  * prints the contents of files passed as arguments (if verbose)
+#
+#  * runs `cargo build` and any meaningful error output the clipboard
+
+
+#!/bin/bash
+
+# --- Help Documentation ---
+usage() {
+    cat <<EOF
+Usage: $0 [OPTIONS] [FILE...]
+
+Display files with headers and/or capture cargo build errors to clipboard.
+
+Options:
+  -v, --verbose    Show file contents and detailed errors in terminal
+  -h, --help       Display this help message and exit
+
+Examples:
+  $0 file1.rs file2.rs      # Copy file contents to clipboard
+  $0                        # Just run cargo build (copy errors if any)
+  $0 -v src/main.rs         # Show files and errors in terminal too
+
+Note: Automatically detects Wayland or X11 for clipboard operations.
+EOF
+}
+
+# --- Initialize Variables ---
+verbose=false
+files=()
+
+# --- Argument Parsing ---
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -v|--verbose)
+            verbose=true
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        -*)
+            echo "Error: Unknown option $1" >&2
+            usage >&2
+            exit 1
+            ;;
+        *)
+            files+=("$1")
+            shift
+            ;;
+    esac
+done
+
+# --- File Processing ---
+clipboard_content=""
+
+if [[ ${#files[@]} -gt 0 ]]; then
+    file_output=$(awk '
+        FNR == 1 {
+            if (NR > 1) print ""
+            print "=== File: " FILENAME " ==="
+            print ""
+        }
+        { print }
+    ' "${files[@]}")
+    
+    clipboard_content="$file_output"
+    
+    if "$verbose"; then
+        echo "=== Showing file contents ==="
+        echo "$file_output"
+    fi
+fi
+
+# --- Cargo Build ---
+echo -e "\n=== Running 'cargo build'... ==="
+
+cargo_output=$(cargo build 2>&1)
+true_errors=$(echo "$cargo_output" | grep -v "Finished \`dev\` profile")
+
+echo "$cargo_output"
+
+# --- Error Handling ---
+if [[ -n "$true_errors" ]]; then
+    if [[ -n "$clipboard_content" ]]; then
+        clipboard_content="$clipboard_content\n\n=== Cargo Build Errors ===\n$true_errors"
+    else
+        clipboard_content="$true_errors"
+    fi
+    
+    if "$verbose"; then
+        echo -e "\n=== Actual Cargo Errors ==="
+        echo "$true_errors"
+    fi
+fi
+
+# --- Clipboard Operations ---
+if [[ -n "$clipboard_content" ]]; then
+    if [[ "$XDG_SESSION_TYPE" = "wayland" || -n "$WAYLAND_DISPLAY" ]]; then
+        if command -v wl-copy >/dev/null; then
+            echo -e "$clipboard_content" | wl-copy
+            echo -e "\n✔ Copied to clipboard (Wayland)"
+        else
+            echo "Warning: wl-copy not installed (Wayland)" >&2
+        fi
+    else
+        if command -v xclip >/dev/null; then
+            echo -e "$clipboard_content" | xclip -selection clipboard
+            echo -e "\n✔ Copied to clipboard (X11)"
+        else
+            echo "Warning: xclip not installed (X11)" >&2
+        fi
+    fi
+fi
+
+# --- Final Status ---
+if [[ -z "$true_errors" ]]; then
+    echo "✔ Build succeeded (no meaningful errors)"
+fi
