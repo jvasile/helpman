@@ -11,6 +11,7 @@ Arguments:
   <BINARY_PATH> - Path to the binary for which the manpage will be generated
 
 Options:
+
   -n, --binary-name - Name of the binary (used in the manpage header). Defaults to the binary file name  
   -o, --output-dir - Directory where the generated manpage will be saved [default: .]  
   -s, --section - Section number of the manpage (accepted values: 1-8) [default: 1]  
