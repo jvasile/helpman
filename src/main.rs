@@ -9,15 +9,15 @@ struct Args {
     /// Path to the binary for which the manpage will be generated
     binary_path: PathBuf,
 
-    /// Name of the binary (used in the manpage header). Defaults to the binary file name.
+    /// Name of the binary (used in the manpage header). [default: binary path name]
     #[arg(short = 'n', long)]
     binary_name: Option<String>,
 
-    /// Directory where the generated manpage will be saved (defaults to current working directory)
+    /// Directory where the generated manpage will be saved
     #[arg(short = 'o', long, default_value = ".")]
     output_dir: PathBuf,
 
-    /// Section number of the manpage (default is 1, accepted values: 1-8)
+    /// Section number of the manpage (accepted values: 1-8)
     #[arg(short = 's', long, default_value = "1", value_parser = clap::value_parser!(u8).range(1..=8))]
     section: u8,
 
