@@ -69,7 +69,7 @@ release() {
     cargo build --release
 
     # Build man page
-    bin/helpman target/release/${PROJNAME} -o target/release
+    bin/helpman target/release/${PROJNAME} > target/release/${PROJNAME}.1
     rm -f target/release/${PROJNAME}.1.gz
     gzip -9n target/release/${PROJNAME}.1
 
